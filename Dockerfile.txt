@@ -1,0 +1,25 @@
+FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
+
+WORKDIR /app
+
+# ติดตั้งไลบรารีที่จำเป็น
+RUN pip install --no-cache-dir transformers==4.30.2 \
+    datasets==2.13.1 \
+    trl==0.4.7 \
+    accelerate==0.21.0 \
+    safetensors==0.3.1 \
+    gym==0.26.2 \
+    stable-baselines3==2.0.0 \
+    google-cloud-storage==2.10.0 \
+    wandb==0.15.5 \
+    nltk==3.8.1
+
+# ติดตั้ง punkt สำหรับ NLTK
+RUN python -c "import nltk; nltk.download('punkt')"
+
+# คัดลอกไฟล์ training script
+COPY train_pipeline.py /app/
+COPY utils/ /app/utils/
+
+# สคริปต์สำหรับเริ่มการฝึกโมเดล
+ENTRYPOINT ["python", "-u", "train_pipeline.py"]
