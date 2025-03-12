@@ -7,14 +7,14 @@ from google.cloud import storage
 import wandb
 import json
 
-from utils.data_loader import prepare_dataset, create_preference_data
-from utils.dpo_trainer import run_dpo_training
-from utils.reward_model import train_reward_model
-from utils.irl_training import train_irl
-from utils.q_learning import train_q_learning
-from utils.sac_training import train_sac
-from utils.ppo_trainer import run_ppo_training
-from utils.cot_trainer import train_cot
+from .utils.data_loader import prepare_dataset, create_preference_data
+from .utils.dpo_trainer import run_dpo_training
+from .utils.reward_model import train_reward_model
+from .utils.irl_training import train_irl
+from .utils.q_learning import train_q_learning
+from .utils.sac_training import train_sac
+from .utils.ppo_trainer import run_ppo_training
+from .utils.cot_trainer import train_cot
 
 # ตั้งค่า logging
 logging.basicConfig(
