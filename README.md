@@ -1,125 +1,144 @@
-# LLM Training with Google Cloud Vertex AI
+# การฝึกฝน Large Language Model ด้วย Google Cloud Vertex AI
 
-## Overview
+## ภาพรวม
 
-This repository provides a comprehensive pipeline for training a Large Language Model (LLM) using various Reinforcement Learning (RL) techniques on Google Cloud Vertex AI. The techniques include Direct Preference Optimization (DPO), Inverse Reinforcement Learning (IRL), Q-Learning, Soft Actor-Critic (SAC), Proximal Policy Optimization (PPO), and Chain-of-Thought (CoT).
+โปรเจกต์นี้นำเสนอไปป์ไลน์ที่ครอบคลุมสำหรับการฝึกฝน Large Language Model (LLM) โดยใช้เทคนิคการเรียนรู้แบบเสริมแรง (Reinforcement Learning) หลากหลายรูปแบบบน Google Cloud Vertex AI เทคนิคเหล่านี้ประกอบด้วย Direct Preference Optimization (DPO), Inverse Reinforcement Learning (IRL), Q-Learning, Soft Actor-Critic (SAC), Proximal Policy Optimization (PPO) และ Chain-of-Thought (CoT)
 
-## Repository Structure
+โปรเจกต์นี้ถูกพัฒนาขึ้นเพื่อเป็นแหล่งเรียนรู้และทดลองสำหรับนักวิจัย นักศึกษา และผู้ที่สนใจในการพัฒนา LLM ภาษาไทย ซึ่งสามารถนำไปต่อยอดเพื่อสร้างโมเดลภาษาที่มีความสามารถในการเข้าใจและโต้ตอบกับผู้ใช้ภาษาไทยได้อย่างเป็นธรรมชาติ
+
+## โครงสร้างของโปรเจกต์
 
 ```plaintext
 .
-├── Dockerfile
-├── requirements.txt
-├── train_pipeline.py
-├── save_to_hf.py
-├── setup_vertex_ai.sh
-├── run_training.sh
+├── Dockerfile                    # ไฟล์สำหรับสร้าง Docker container
+├── requirements.txt              # รายการไลบรารีที่จำเป็น
+├── train_pipeline.py             # ไปป์ไลน์หลักสำหรับการฝึกฝนโมเดล
+├── save_to_hf.py                 # สคริปต์สำหรับบันทึกโมเดลไปยัง Hugging Face
+├── setup_vertex_ai.sh            # สคริปต์สำหรับตั้งค่า Google Cloud Vertex AI
+├── run_training.sh               # สคริปต์สำหรับเริ่มการฝึกฝนโมเดล
 ├── utils
 │   ├── __init__.py
-│   ├── data_loader.py
-│   ├── dpo_trainer.py
-│   ├── reward_model.py
-│   ├── irl_training.py
-│   ├── q_learning.py
-│   ├── sac_training.py
-│   ├── ppo_trainer.py
-│   └── cot_trainer.py
-└── README.md
+│   ├── data_loader.py            # โมดูลสำหรับโหลดข้อมูล
+│   ├── dpo_trainer.py            # โมดูลสำหรับการฝึกฝนแบบ DPO
+│   ├── reward_model.py           # โมดูลสำหรับโมเดลรางวัล
+│   ├── irl_training.py           # โมดูลสำหรับการฝึกฝนแบบ IRL
+│   ├── q_learning.py             # โมดูลสำหรับการฝึกฝนแบบ Q-Learning
+│   ├── sac_training.py           # โมดูลสำหรับการฝึกฝนแบบ SAC
+│   ├── ppo_trainer.py            # โมดูลสำหรับการฝึกฝนแบบ PPO
+│   └── cot_trainer.py            # โมดูลสำหรับการฝึกฝนแบบ CoT
+└── README.md                     # ไฟล์นี้
 ```
 
-## Setup and Installation
+## การติดตั้งและการตั้งค่า
 
-### Prerequisites
+### สิ่งที่ต้องมีก่อน
 
-1. **Google Cloud SDK**: Ensure you have the Google Cloud SDK installed and configured.
-2. **Docker**: Make sure Docker is installed on your system.
-3. **Python**: Ensure you have Python 3.8 or later installed.
+1. **Google Cloud SDK**: ตรวจสอบว่าคุณได้ติดตั้งและตั้งค่า Google Cloud SDK แล้ว
+2. **Docker**: ตรวจสอบว่ามี Docker ติดตั้งในระบบของคุณ
+3. **Python**: ตรวจสอบว่าคุณมี Python 3.8 หรือใหม่กว่าติดตั้งอยู่
 
-### Steps
+### ขั้นตอน
 
-1. **Clone the repository**:
+1. **โคลนโปรเจกต์**:
     ```bash
     git clone https://github.com/JonusNattapong/normaldayinthailand.git
     cd normaldayinthailand
     ```
 
-2. **Install dependencies**:
+2. **ติดตั้งไลบรารีที่จำเป็น**:
     ```bash
     pip install -r requirements.txt
     ```
 
-3. **Setup Google Cloud Vertex AI**:
+3. **ตั้งค่า Google Cloud Vertex AI**:
     ```bash
     chmod +x setup_vertex_ai.sh
     ./setup_vertex_ai.sh
     ```
 
-## Training the Model
+## การฝึกฝนโมเดล
 
-### One-step Training
+### การฝึกฝนแบบครบวงจร
 
-To train the model using all techniques in one go:
+สำหรับการฝึกฝนโมเดลโดยใช้ทุกเทคนิคในคราวเดียว:
 
 ```bash
 chmod +x run_training.sh
 ./run_training.sh us-central1 all 4 1
 ```
 
-### Step-by-step Training
+### การฝึกฝนทีละขั้นตอน
 
-To train the model step-by-step for better resource management:
+สำหรับการฝึกฝนโมเดลทีละขั้นตอนเพื่อจัดการทรัพยากรได้ดีขึ้น:
 
 ```bash
-# Step 1: DPO Training
+# ขั้นตอนที่ 1: การฝึกฝนแบบ DPO
 ./run_training.sh us-central1 dpo 4 1
 
-# Step 2: Reward Model Training
+# ขั้นตอนที่ 2: การฝึกฝนโมเดลรางวัล
 ./run_training.sh us-central1 reward 4 1
 
-# Step 3: IRL Training
+# ขั้นตอนที่ 3: การฝึกฝนแบบ IRL
 ./run_training.sh us-central1 irl 4 1
 
-# Step 4: Q-Learning Training
+# ขั้นตอนที่ 4: การฝึกฝนแบบ Q-Learning
 ./run_training.sh us-central1 q_learning 4 1
 
-# Step 5: SAC Training
+# ขั้นตอนที่ 5: การฝึกฝนแบบ SAC
 ./run_training.sh us-central1 sac 4 1
 
-# Step 6: PPO Training
+# ขั้นตอนที่ 6: การฝึกฝนแบบ PPO
 ./run_training.sh us-central1 ppo 4 1
 
-# Step 7: CoT Training
+# ขั้นตอนที่ 7: การฝึกฝนแบบ CoT
 ./run_training.sh us-central1 cot 4 1
 ```
 
-## Saving the Model to Hugging Face
+## การบันทึกโมเดลไปยัง Hugging Face
 
-You can save your trained model to Hugging Face using the `save_to_hf.py` script:
+คุณสามารถบันทึกโมเดลที่ฝึกฝนแล้วไปยัง Hugging Face ได้โดยใช้สคริปต์ `save_to_hf.py`:
 
-1. **Configure Hugging Face credentials**:
-    - Obtain your Hugging Face token from [Hugging Face](https://huggingface.co/settings/tokens).
+1. **ตั้งค่าข้อมูลประจำตัว Hugging Face**:
+    - รับโทเค็น Hugging Face จาก [Hugging Face](https://huggingface.co/settings/tokens)
 
-2. **Run the script**:
+2. **รันสคริปต์**:
     ```bash
     python save_to_hf.py
     ```
 
-## Monitoring and Logs
+## การติดตามและบันทึก
 
-Monitor the training jobs and logs using Google Cloud Console:
-- Go to [Vertex AI](https://console.cloud.google.com/vertex-ai)
-- Check the status of your jobs and view logs
+ติดตามงานฝึกฝนและบันทึกโดยใช้ Google Cloud Console:
+- ไปที่ [Vertex AI](https://console.cloud.google.com/vertex-ai)
+- ตรวจสอบสถานะของงานและดูบันทึก
 
-## Notes
+## แนวทางการวิจัยและพัฒนาต่อยอด
 
-- Be mindful of the costs associated with using GPU resources on Google Cloud.
-- Regularly check the logs to ensure that the training process is running smoothly.
-- Ensure that you have sufficient quota for GPU resources on Google Cloud.
+โปรเจกต์นี้สามารถนำไปวิจัยและพัฒนาต่อยอดได้หลากหลายรูปแบบ โดยมีแนวทางที่น่าสนใจดังนี้
 
-## Contributing
+| แนวทางการวิจัย | การประยุกต์ใช้ | ความรู้ที่จำเป็น | ระดับความยาก | ประโยชน์ต่อสังคมไทย |
+|--------------|-------------|--------------|-----------|-----------------|
+| การพัฒนาโมเดลภาษาไทยเฉพาะทาง | ระบบช่วยเหลือด้านกฎหมาย, การแพทย์, การศึกษา | NLP, ภาษาศาสตร์ภาษาไทย, ความรู้เฉพาะด้าน | สูง | การเข้าถึงความรู้เฉพาะทางสำหรับประชาชน |
+| การปรับปรุงประสิทธิภาพของการฝึกฝน | การลดทรัพยากรที่ใช้, การเพิ่มความเร็ว | ML Optimization, Cloud Computing | ปานกลาง | ลดต้นทุนการพัฒนา AI ในประเทศ |
+| การพัฒนาวิธีการฝึกฝนแบบใหม่ | โมเดลที่มีความแม่นยำสูงขึ้น | RL, ML Research | สูงมาก | นวัตกรรมใหม่ด้าน AI ของไทย |
+| การนำไปใช้กับข้อมูลเฉพาะถิ่น | ระบบแปลภาษาถิ่น, เข้าใจวัฒนธรรมท้องถิ่น | ภาษาศาสตร์ท้องถิ่น, การเก็บข้อมูล | ปานกลาง | การอนุรักษ์วัฒนธรรมและภาษาท้องถิ่น |
+| การพัฒนาแบบหลายภาษา | ระบบแปลภาษาแม่นยำระหว่างไทยกับภาษาอื่นๆ | NLP หลายภาษา | สูง | เชื่อมโยงไทยกับประชาคมโลก |
 
-Contributions are welcome! Please open an issue or submit a pull request for any improvements or bug fixes.
+## จุดเด่นของโปรเจกต์สำหรับนักวิจัยไทย
 
-## License
+โปรเจกต์นี้มีจุดเด่นสำหรับนักวิจัยและนักพัฒนาชาวไทยดังนี้:
 
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+1. **โครงสร้างที่ครบถ้วน**: มีเครื่องมือและโค้ดพร้อมใช้งานสำหรับการฝึกฝนโมเดลด้วยเทคนิคหลากหลาย
+2. **รองรับการทำงานบนคลาวด์**: ลดภาระเรื่องทรัพยากรฮาร์ดแวร์สำหรับนักวิจัยที่มีงบประมาณจำกัด
+3. **โอเพนซอร์ส**: สามารถนำไปต่อยอดได้อย่างอิสระ เหมาะสำหรับการศึกษาและวิจัย
+4. **เทคโนโลยีทันสมัย**: ใช้เทคนิคการเรียนรู้แบบเสริมแรงที่เป็นที่นิยมในปัจจุบัน
+
+เราหวังว่าโปรเจกต์นี้จะเป็นรากฐานสำคัญในการพัฒนา AI ภาษาไทยที่มีคุณภาพ และช่วยผลักดันให้เกิดนวัตกรรมด้านปัญญาประดิษฐ์ในประเทศไทย
+
+## การมีส่วนร่วม
+
+เรายินดีรับการมีส่วนร่วมจากทุกท่าน! หากคุณมีข้อเสนอแนะหรือพบข้อผิดพลาด กรุณาเปิด issue หรือส่ง pull request เข้ามาได้เลย
+
+## ลิขสิทธิ์
+
+โปรเจกต์นี้ได้รับอนุญาตภายใต้ Apache License 2.0 - ดูรายละเอียดเพิ่มเติมได้ที่ไฟล์ [LICENSE](LICENSE)

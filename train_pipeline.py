@@ -7,6 +7,7 @@ from google.cloud import storage
 import wandb
 import json
 
+from .utils.model_manager import ModelManager
 from .utils.data_loader import prepare_dataset, create_preference_data
 from .utils.dpo_trainer import run_dpo_training
 from .utils.reward_model import train_reward_model
@@ -39,6 +40,7 @@ from .utils.off_policy_correction import train_off_policy_correction
 from .utils.information_exploration import train_information_exploration
 from .utils.diffusion_rl import train_diffusion_rl
 from .utils.multi_objective_rl import train_multi_objective_rl
+from .utils.rag_training import train_rag
 
 
 # ตั้งค่า logging
@@ -50,15 +52,44 @@ logger = logging.getLogger(__name__)
 
 def parse_args():
     parser = argparse.ArgumentParser(description="LLM Training Pipeline")
-    parser.add_argument("--base-model", type=str, default="scb10x/llama3.2-typhoon2-t1-3b-research-preview")
-    parser.add_argument("--batch-size", type=int, default=4)
-    parser.add_argument("--output-dir", type=str, default="/app/output")
-    parser.add_argument("--gcs-output-path", type=str, required=True)
-    parser.add_argument("--epochs", type=int, default=1)
-    parser.add_argument("--lr", type=float, default=1e-5)
-    parser.add_argument("--wandb-project", type=str, default="llm-rl-training")
-    parser.add_argument("--dataset", type=str, default="wisesight_sentiment")
-    parser.add_argument("--max-samples", type=int, default=5000)
+    
+    # Model arguments
+    model_group = parser.add_argument_group('Model Configuration')
+    model_group.add_argument("--base-model", type=str, default="scb10x/llama3.2-typhoon2-t1-3b-research-preview",
+                            help="Base model name or path from Hugging Face Hub")
+    model_group.add_argument("--model-type", choices=["pretrained", "finetuned"], default="pretrained",
+                           help="Type of model to use")
+    model_group.add_argument("--load-from-hub", action="store_true",
+                           help="Download model from Hugging Face Hub if not available locally")
+    
+    # Dataset arguments
+    data_group = parser.add_argument_group('Dataset Configuration')
+    data_group.add_argument("--dataset", type=str, default="wisesight_sentiment",
+                          help="Dataset name from Hugging Face Hub")
+    data_group.add_argument("--dataset-subset", type=str,
+                          help="Specific subset/configuration of the dataset")
+    data_group.add_argument("--max-samples", type=int, default=5000,
+                          help="Maximum number of samples to use from dataset")
+    data_group.add_argument("--load-dataset-from-hub", action="store_true",
+                          help="Download dataset from Hugging Face Hub if not available locally")
+    
+    # Training arguments
+    train_group = parser.add_argument_group('Training Configuration')
+    train_group.add_argument("--batch-size", type=int, default=4,
+                           help="Training batch size")
+    train_group.add_argument("--epochs", type=int, default=1,
+                           help="Number of training epochs")
+    train_group.add_argument("--lr", type=float, default=1e-5,
+                           help="Learning rate")
+    
+    # Output arguments
+    output_group = parser.add_argument_group('Output Configuration')
+    output_group.add_argument("--output-dir", type=str, default="output",
+                            help="Local output directory")
+    output_group.add_argument("--gcs-output-path", type=str, required=True,
+                            help="Google Cloud Storage output path")
+    output_group.add_argument("--wandb-project", type=str, default="llm-rl-training",
+                            help="Weights & Biases project name")
     parser.add_argument("--run-stage", type=str, default="all",
                         choices=["all", "dpo", "reward", "irl", "q_learning", "sac", "ppo", "cot",
                                 "a3c", "ddpg", "td3", "dqn", "rainbow_dqn", "contrastive_rl",
@@ -66,7 +97,7 @@ def parse_args():
                                 "intrinsic_motivation", "meta_rl_task_decomposition", "distributional_rl",
                                 "world_models", "advantage_weighted_regression", "tsallis_entropy_rl",
                                 "hybrid_model_rl", "off_policy_correction", "information_exploration",
-                                "diffusion_rl"])
+                                "diffusion_rl", "rag"])
     return parser.parse_args()
 
 def upload_to_gcs(source_dir, gcs_path):
@@ -115,7 +146,7 @@ def main():
                  'contrastive_rl', 'bayesian_rl', 'curriculum_rl', 'self_supervised_rl', 'graph_based_rl',
                  'intrinsic_motivation', 'meta_rl_task_decomposition', 'distributional_rl', 'world_models',
                  'advantage_weighted_regression', 'tsallis_entropy_rl', 'hybrid_model_rl', 'off_policy_correction',
-                 'information_exploration', 'diffusion_rl']
+                 'information_exploration', 'diffusion_rl', 'rag']
     stages_to_run = all_stages if args.run_stage == "all" else [args.run_stage]
     
     # 1. DPO Training
@@ -571,7 +602,27 @@ def main():
             )
             results['diffusion_rl'] = {"completed": True, "path": diffusion_output_dir}
             upload_to_gcs(diffusion_output_dir, f"{args.gcs_output_path}/diffusion_rl_model")
-    
+
+        # 29. RAG Training
+        rag_output_dir = os.path.join(args.output_dir, "rag_model")
+        if 'rag' in stages_to_run:
+            logger.info("Starting RAG training...")
+            rag_model, rag_tokenizer = train_rag(
+                base_model=dpo_output_dir if 'dpo' in results else args.base_model,
+                train_dataset=train_dataset,
+                output_dir=rag_output_dir,
+                val_dataset=eval_dataset,
+                reward_model_path=reward_output_dir if 'reward' in results else None,
+                batch_size=args.batch_size,
+                epochs=args.epochs,
+                learning_rate=args.lr,
+                use_deepspeed=torch.cuda.device_count() > 1,
+                n_trials=5 if torch.cuda.is_available() else 1,
+                distributed_port=29500
+            )
+            results['rag'] = {"completed": True, "path": rag_output_dir}
+            upload_to_gcs(rag_output_dir, f"{args.gcs_output_path}/rag_model")
+
         # บันทึกผลลัพธ์ทั้งหมด
     with open(os.path.join(args.output_dir, f"training_results_{run_id}.json"), "w") as f:
         json.dump(results, f, indent=2)

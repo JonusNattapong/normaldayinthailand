@@ -1,0 +1,53 @@
+{
+  "model_config": {
+    "base_model": "scb10x/llama3.2-typhoon2-t1-3b-research-preview",
+    "model_type": "causal",
+    "pretrained_models": {
+      "encoder": "facebook/rag-token-base",
+      "generator": "facebook/bart-large",
+      "retriever": "facebook/dpr-ctx_encoder-multiset-base"
+    }
+  },
+  "training_config": {
+    "batch_size": 4,
+    "epochs": 3,
+    "learning_rate": 1e-5,
+    "warmup_steps": 500,
+    "weight_decay": 0.01,
+    "gradient_accumulation_steps": 4,
+    "max_grad_norm": 1.0,
+    "fp16": true
+  },
+  "distributed_config": {
+    "use_deepspeed": true,
+    "zero_stage": 2,
+    "distributed_port": 29500,
+    "gradient_checkpointing": true
+  },
+  "optimizer_config": {
+    "optimizer_type": "adamw",
+    "scheduler_type": "cosine",
+    "num_warmup_steps": 500,
+    "num_training_steps": 5000
+  },
+  "hyperopt_config": {
+    "n_trials": 5,
+    "parameters": {
+      "learning_rate": {
+        "type": "float",
+        "min": 1e-6,
+        "max": 1e-4,
+        "log": true
+      },
+      "batch_size": {
+        "type": "categorical",
+        "choices": [4, 8, 16, 32]
+      },
+      "warmup_steps": {
+        "type": "int",
+        "min": 100,
+        "max": 1000
+      }
+    }
+  }
+}
