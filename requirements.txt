@@ -9,3 +9,4 @@ stable-baselines3==2.0.0
 google-cloud-storage==2.10.0
 wandb==0.15.5
 nltk==3.8.1
+torch_geometric
